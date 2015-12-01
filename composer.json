@@ -1,0 +1,16 @@
+{
+    "name": "iamluc/docker-hostmanager",
+    "license": "MIT",
+    "type": "project",
+    "description": "Update /etc/hosts to access running containers",
+    "keywords": ["docker", "hosts", "registry"],
+    "require": {
+        "stage1/docker-php": "@dev"
+    },
+    "authors": [
+        {
+            "name": "Luc Vieillescazes",
+            "email": "luc@vieillescazes.net"
+        }
+    ]
+}
