@@ -22,6 +22,10 @@ function getRunningContainers(Docker\Docker $docker)
             continue;
         }
 
+        if (empty($infos['NetworkSettings']['Ports'])) {
+            continue;
+        }
+
         if (!isset($infos['NetworkSettings']['IPAddress'])) {
             continue;
         }
