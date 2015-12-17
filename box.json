@@ -1,0 +1,13 @@
+{
+  "main": "bin/docker-hostmanager",
+  "output": "bin/docker-hostmanager.phar",
+  "finder": [
+    {
+      "name": ["*.php"],
+      "exclude": ["Tests", "tests"],
+      "in": ["src", "vendor"]
+    }
+  ],
+  "chmod": "0755",
+  "stub": true
+}
