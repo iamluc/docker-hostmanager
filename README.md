@@ -33,6 +33,10 @@ i.e.
 $ docker run -d -e DOMAIN_NAME=test.com,www.test.com my_image
 ```
 
+### Tests
+
+To run test, execute the following command : `vendor/bin/phpunit`
+
 ### LICENSE
 
 [MIT](https://opensource.org/licenses/MIT)

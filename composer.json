@@ -7,6 +7,9 @@
     "require": {
         "stage1/docker-php": "@dev"
     },
+    "require-dev": {
+        "phpunit/phpunit": "^5.1"
+    },
     "authors": [
         {
             "name": "Luc Vieillescazes",
@@ -14,6 +17,6 @@
         }
     ],
     "autoload": {
-        "psr-4": {"DockerHostManager\\": "src/"}
+        "psr-4": {"DockerHostManager\\": "src/", "Test\\": "tests"}
     }
 }

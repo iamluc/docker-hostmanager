@@ -1,0 +1,12 @@
+language: php
+sudo: false
+php: 5.6
+
+install: composer install --prefer-source
+
+script: vendor/bin/phpunit --configuration phpunit.xml.dist
+
+cache:
+  directories:
+    - vendor
+    - $HOME/.composer/cache
