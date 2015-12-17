@@ -14,11 +14,11 @@ class Application
     private $client;
     private $docker;
 
-    public function __construct()
+    public function __construct($entrypoint, $hostsFile, $tld)
     {
-        $this->entrypoint = getenv('DOCKER_ENTRYPOINT') ?: 'unix:///var/run/docker.sock';
-        $this->hostsFile = getenv('HOSTS_FILE') ?: '/etc/hosts';
-        $this->tld = getenv('TLD') ?: '.docker';
+        $this->entrypoint = $entrypoint;
+        $this->hostsFile = $hostsFile;
+        $this->tld = $tld;
 
         $this->client = new DockerClient([], $this->entrypoint);
         $this->docker = new Docker($this->client);
