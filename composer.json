@@ -12,5 +12,8 @@
             "name": "Luc Vieillescazes",
             "email": "luc@vieillescazes.net"
         }
-    ]
+    ],
+    "autoload": {
+        "psr-4": {"DockerHostManager\\": "src/"}
+    }
 }
