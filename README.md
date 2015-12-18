@@ -13,7 +13,7 @@ THIS PROJECT IS IN ALPHA STATE
 
 ### USAGE
 
-#### Docker image
+#### Docker image (Recommended)
 
 The easiest way is to use the docker image
 
@@ -31,6 +31,16 @@ The `DOMAIN_NAME` environment variable lets you define multiple hosts.
 i.e.
 ```
 $ docker run -d -e DOMAIN_NAME=test.com,www.test.com my_image
+```
+
+#### PHAR
+
+If you don't want to use the docker image you can download a PHAR executable here : https://github.com/iamluc/docker-hostmanager/releases
+
+And then run it:
+
+```console
+$ php docker-hostmanager.phar
 ```
 
 ### Tests
