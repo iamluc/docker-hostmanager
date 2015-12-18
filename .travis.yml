@@ -2,11 +2,24 @@ language: php
 sudo: false
 php: 5.6
 
-install: composer install --prefer-source
-
-script: vendor/bin/phpunit --configuration phpunit.xml.dist
-
 cache:
   directories:
     - vendor
     - $HOME/.composer/cache
+
+install: composer install --prefer-source
+
+script: vendor/bin/phpunit --configuration phpunit.xml.dist
+
+before_deploy:
+    - curl -LSs http://box-project.github.io/box2/installer.php | php
+    - php box.phar build
+
+deploy:
+  provider: releases
+  skip_cleanup: true
+  api_key:
+    secure: NuHZx1ORZGojbPuY2ZZrB1BNfe2UUmO5wBv4dM6Qu2WluU0zp96LmKlOsbNml6k167cKj4R1AHgbVsbBARjtUeoYNBYti1G5/m2iXjRRqfPGNkuhG7A2THnYtrLqRb2jCI3hypsZSpOtj//4N+Q3CEKT9nd69HeV90/cAFd+YgDN5ldk9mhHbMnFAJ5hAFzYzUg2zukExVWObWkQ9Y3nP/zJ8jQvmvfiS2yLO+DjPEDH63rQorCbFh9SI0hSWXUQxTtbUk8Jj1H46Mrp9RAZlNhfEL2HiUt4S6lKciCQxkZ3P9yXp8ebjYPqH7fPPhn8G3ewYQqGFG/AYQGX463eyh0VAIt4PbJyIeqtEoPKC1h16b7a9tVt2kroQMImkYV1pwKg/aNZ0x9T3PXBjaCU8Mb5qrUvYpIoxjONI2qxi6lDV0kikumzhFnbfayFTA004ybl+yL1Ag3LxXyqo2jeu3vzX0e9kSDbQD1Cf4lp0riDkbKIDrJ8Ptqv67QV+dcAPyynDkRYDvPoSRKnraVKtHeRu1P5XHH7gpL/xdU8UnvO83ofDaLu923fkDE/dlGNhR/MU8P4EMWC4U/y0ROp1Wx27+qatrzCFZBlJVjtq6urTZ5Z6fMrD9f/Nelu8UR4CI8hnWMFl+UQVoQpSDYYVh71DHPU1QK+A/TpGI4GYm8=
+  file: bin/docker-hostmanager.phar
+  on:
+    tags: true
