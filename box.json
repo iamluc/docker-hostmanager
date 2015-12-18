@@ -9,5 +9,6 @@
     }
   ],
   "chmod": "0755",
-  "stub": true
+  "stub": true,
+  "git-version": "package_version"
 }
