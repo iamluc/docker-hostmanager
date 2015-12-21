@@ -50,7 +50,7 @@ class Application
                 continue;
             }
 
-            if (isset($infos['NetworkSettings']['IPAddress'])) {
+            if (isset($infos['NetworkSettings']['IPAddress']) && '' !== $infos['NetworkSettings']['IPAddress']) {
                 $ip = $infos['NetworkSettings']['IPAddress'];
                 $containers[$ip] = substr($container->getName(), 1);
             }
