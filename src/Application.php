@@ -50,8 +50,16 @@ class Application
                 continue;
             }
 
-            $ip = $infos['NetworkSettings']['IPAddress'];
-            $containers[$ip] = substr($container->getName(), 1);
+            if (isset($infos['NetworkSettings']['IPAddress'])) {
+                $ip = $infos['NetworkSettings']['IPAddress'];
+                $containers[$ip] = substr($container->getName(), 1);
+            }
+
+            if (isset($infos['NetworkSettings']['Networks']) && is_array($infos['NetworkSettings']['Networks'])) {
+                foreach ($infos['NetworkSettings']['Networks'] as $name => $conf) {
+                    $containers[$conf['IPAddress']] = substr($container->getName(), 1);
+                }
+            }
         }
 
         return $containers;
@@ -64,10 +72,6 @@ class Application
         }
 
         if (empty($infos['NetworkSettings']['Ports'])) {
-            return false;
-        }
-
-        if (!isset($infos['NetworkSettings']['IPAddress'])) {
             return false;
         }
 
