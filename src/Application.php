@@ -132,7 +132,7 @@ class Application
             return false;
         }
 
-        if (!isset($infos['NetworkSettings']['IPAddress']) || !isset($infos['State']['Running'])) {
+        if (!empty($infos['NetworkSettings']['IPAddress']) || !empty($infos['State']['Running'])) {
             return false;
         }
 
