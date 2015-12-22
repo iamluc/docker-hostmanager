@@ -2,18 +2,37 @@
 
 namespace DockerHostManager;
 
+use Docker\Container;
 use Docker\Docker;
+use Docker\Exception\ContainerNotFoundException;
 use Docker\Http\DockerClient;
+use Docker\Manager\ContainerManager;
 
 class Application
 {
+    const START_TAG = '## docker-hostmanager-start';
+    const END_TAG = '## docker-hostmanager-end';
+
+    /** @var string */
     private $entrypoint;
+    /** @var string */
     private $hostsFile;
+    /** @var string */
     private $tld;
 
+    /** @var DockerClient */
     private $client;
-    private $docker;
+    /** @var ContainerManager  */
+    private $containerManager;
 
+    /** @var array Container */
+    private $activeContainers = [];
+
+    /**
+     * @param string $entrypoint
+     * @param string $hostsFile
+     * @param string $tld
+     */
     public function __construct($entrypoint, $hostsFile, $tld)
     {
         $this->entrypoint = $entrypoint;
@@ -21,80 +40,106 @@ class Application
         $this->tld = $tld;
 
         $this->client = new DockerClient([], $this->entrypoint);
-        $this->docker = new Docker($this->client);
+        $this->containerManager = (new Docker($this->client))->getContainerManager();
     }
 
     public function run()
     {
-        $lastState = [];
-        while (true) {
-            $state = $this->getRunningContainers();
-            if ($state !== $lastState) {
-                $lastState = $state;
-                $this->writeHosts($state);
-            }
-
-            sleep(1);
-        }
+        $this->init();
+        $this->listen();
     }
 
-    private function getRunningContainers()
+    private function init()
     {
-        $containers = [];
-        $containerManager = $this->docker->getContainerManager();
-        foreach ($containerManager->findAll() as $container) {
-            $containerManager->inspect($container);
-            $infos = $container->getRuntimeInformations();
+        $this->activeContainers = array_filter($this->containerManager->findAll(), function (Container $container) {
+            return $this->isExposed($container);
+        });
 
-            if (false === $this->exposeContainer($infos)) {
-                continue;
-            }
+        $this->write();
+    }
 
-            if (isset($infos['NetworkSettings']['IPAddress']) && '' !== $infos['NetworkSettings']['IPAddress']) {
-                $ip = $infos['NetworkSettings']['IPAddress'];
-                $containers[$ip] = substr($container->getName(), 1);
-            }
-
-            if (isset($infos['NetworkSettings']['Networks']) && is_array($infos['NetworkSettings']['Networks'])) {
-                foreach ($infos['NetworkSettings']['Networks'] as $name => $conf) {
-                    $containers[$conf['IPAddress']] = substr($container->getName(), 1);
+    private function listen()
+    {
+        $stream = stream_socket_client($this->entrypoint, $errno, $errstr, 30);
+        fputs($stream, "GET /events HTTP/1.0\r\nHost: $this->entrypoint\r\nAccept: */*\r\n\r\n");
+        while (!feof($stream)) {
+            if (null !== ($response = json_decode(fgets($stream)))) {
+                $container = $this->containerManager->find($response->id);
+                if ($this->isExposed($container)) {
+                    $this->activeContainers[] = $container;
+                } else {
+                    $this->activeContainers = array_filter($this->activeContainers, function (Container $c) use ($container) {
+                        return $c->getId() !== $container->getId();
+                    });
                 }
+                $this->write();
             }
         }
-
-        return $containers;
+        fclose($stream);
     }
 
-    private function exposeContainer($infos)
+    private function write()
     {
-        if (!isset($infos['State']['Running']) || true !== $infos['State']['Running']) {
-            return false;
-        }
+        $content = array_map('trim', file($this->hostsFile));
+
+        $res = preg_grep('/^'.self::START_TAG.'/', $content);
+        $start = count($res) ? key($res) : count($content) + 1;
+
+        $res = preg_grep('/^'.self::END_TAG.'/', $content);
+        $end = count($res) ? key($res) : count($content) + 1;
+
+        $hosts = array_merge(
+            [self::START_TAG],
+            array_map(
+                function (Container $container) {
+                    return $this->getHost($container);
+                },
+                $this->activeContainers
+            ),
+            [self::END_TAG]
+        );
+
+        array_splice($content, $start, $end - $start + 1, $hosts);
+
+        file_put_contents($this->hostsFile, implode("\n", $content));
+    }
+
+    /**
+     * @param Container $container
+     *
+     * @return string
+     *
+     * @throws ContainerNotFoundException
+     */
+    private function getHost(Container $container)
+    {
+        $this->containerManager->inspect($container);
+        $infos = $container->getRuntimeInformations();
+
+        $ip = $infos['NetworkSettings']['IPAddress'];
+        $host = substr($container->getName(), 1).$this->tld;
+
+        return "$ip $host";
+    }
+
+    /**
+     * @param Container $container
+     *
+     * @return bool
+     */
+    private function isExposed(Container $container)
+    {
+        $this->containerManager->inspect($container);
+        $infos = $container->getRuntimeInformations();
 
         if (empty($infos['NetworkSettings']['Ports'])) {
             return false;
         }
 
-        return true;
-    }
-
-    private function writeHosts(array $containers)
-    {
-        $content = file($this->hostsFile);
-
-        $res = preg_grep('/^## docker-hostmanager-start/', $content);
-        $start = count($res) ? key($res) : count($content) + 1;
-
-        $res = preg_grep('/^## docker-hostmanager-end/', $content);
-        $end = count($res) ? key($res) : count($content) + 1;
-
-        $conf = ["## docker-hostmanager-start\n"];
-        foreach ($containers as $ip => $name) {
-            $conf[] = $ip.' '.$name.$this->tld."\n";
+        if (empty($infos['NetworkSettings']['IPAddress']) || empty($infos['State']['Running'])) {
+            return false;
         }
-        $conf[] = "## docker-hostmanager-end\n";
 
-        array_splice($content, $start, $end - $start + 1, $conf);
-        file_put_contents($this->hostsFile, implode('', $content));
+        return $infos['State']['Running'];
     }
 }
