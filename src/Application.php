@@ -17,6 +17,8 @@ class Application
     private $entrypoint;
     /** @var string */
     private $hostsFile;
+    /** @var string */
+    private $tld;
 
     /** @var DockerClient */
     private $client;
@@ -29,11 +31,13 @@ class Application
     /**
      * @param string $entrypoint
      * @param string $hostsFile
+     * @param string $tld
      */
     public function __construct($entrypoint, $hostsFile, $tld)
     {
         $this->entrypoint = $entrypoint;
         $this->hostsFile = $hostsFile;
+        $this->tld = $tld;
 
         $this->client = new DockerClient([], $this->entrypoint);
         $this->containerManager = (new Docker($this->client))->getContainerManager();
@@ -113,7 +117,7 @@ class Application
         $infos = $container->getRuntimeInformations();
 
         $ip = $infos['NetworkSettings']['IPAddress'];
-        $host = substr($container->getName(), 1);
+        $host = substr($container->getName(), 1).$this->tld;
 
         return "$ip $host";
     }
