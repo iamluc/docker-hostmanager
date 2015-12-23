@@ -21,9 +21,17 @@ The easiest way is to use the docker image
 $ docker run -d --name docker-hostmanager -v /var/run/docker.sock:/var/run/docker.sock -v /etc/hosts:/hosts iamluc/docker-hostmanager
 ```
 
-### TIPS
+*TIPS*
 
 To start automatically your container with your computer, add the option `--restart=always`
+
+*OPTIONS*
+
+The `DOMAIN_NAME` environment variable lets you define multiple hosts.
+i.e.
+```
+$ docker run -d -e DOMAIN_NAME=test.com,www.test.com my_image
+```
 
 ### LICENSE
 

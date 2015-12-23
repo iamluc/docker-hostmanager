@@ -50,14 +50,23 @@ class Application
                 continue;
             }
 
+            $hosts = [substr($container->getName(), 1).$this->tld];
+            if (isset($infos['Config']['Env']) && is_array($infos['Config']['Env'])) {
+                $env = $infos['Config']['Env'];
+                foreach (preg_grep('/DOMAIN_NAME=/', $env) as $row) {
+                    $row = substr($row, strlen('DOMAIN_NAME='));
+                    $hosts = array_merge($hosts, explode(',', $row));
+                }
+            }
+
             if (isset($infos['NetworkSettings']['IPAddress']) && '' !== $infos['NetworkSettings']['IPAddress']) {
                 $ip = $infos['NetworkSettings']['IPAddress'];
-                $containers[$ip] = substr($container->getName(), 1);
+                $containers[$ip] = $hosts;
             }
 
             if (isset($infos['NetworkSettings']['Networks']) && is_array($infos['NetworkSettings']['Networks'])) {
                 foreach ($infos['NetworkSettings']['Networks'] as $name => $conf) {
-                    $containers[$conf['IPAddress']] = substr($container->getName(), 1);
+                    $containers[$conf['IPAddress']] = $hosts;
                 }
             }
         }
@@ -89,8 +98,8 @@ class Application
         $end = count($res) ? key($res) : count($content) + 1;
 
         $conf = ["## docker-hostmanager-start\n"];
-        foreach ($containers as $ip => $name) {
-            $conf[] = $ip.' '.$name.$this->tld."\n";
+        foreach ($containers as $ip => $hosts) {
+            $conf[] = $ip.' '.implode(' ', $hosts)."\n";
         }
         $conf[] = "## docker-hostmanager-end\n";
 
