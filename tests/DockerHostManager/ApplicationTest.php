@@ -16,7 +16,7 @@ class ApplicationTest extends \PHPUnit_Framework_TestCase
         $this->assertSame('unix:///var/run/docker.sock', PropertyAccessor::getProperty($application, 'entrypoint'));
         $this->assertSame('/etc/hosts', PropertyAccessor::getProperty($application, 'hostsFile'));
         $this->assertSame('docker', PropertyAccessor::getProperty($application, 'tld'));
-        $this->assertInstanceOf(DockerClient::class, PropertyAccessor::getProperty($application, 'client'));
         $this->assertInstanceOf(Docker::class, PropertyAccessor::getProperty($application, 'docker'));
+        $this->assertInternalType('array', PropertyAccessor::getProperty($application, 'activeContainers'));
     }
 }

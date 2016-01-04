@@ -40,7 +40,7 @@ If you don't want to use the docker image you can download a PHAR executable her
 And then run it:
 
 ```console
-$ php docker-hostmanager.phar
+$ php docker-hostmanager.phar synchronize-hosts
 ```
 
 ### Tests
