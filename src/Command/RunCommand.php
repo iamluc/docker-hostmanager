@@ -13,7 +13,7 @@ class RunCommand extends Command
     protected function configure()
     {
         $this
-            ->setName('run')
+            ->setName('synchronize-hosts')
             ->setDescription('Run the application')
             ->addArgument(
                 'entrypoint',
