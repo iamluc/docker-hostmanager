@@ -2,108 +2,192 @@
 
 namespace DockerHostManager;
 
-use Docker\Docker;
+use Docker\Container;
+use Docker\Exception\ContainerNotFoundException;
+use DockerHostManager\Docker\Docker;
+use DockerHostManager\Docker\Event;
 use Docker\Http\DockerClient;
 
 class Application
 {
+    const START_TAG = '## docker-hostmanager-start';
+    const END_TAG = '## docker-hostmanager-end';
+
+    /** @var string */
     private $entrypoint;
+    /** @var string */
     private $hostsFile;
+    /** @var string */
     private $tld;
 
-    private $client;
+    /** @var Docker  */
     private $docker;
+    /** @var array Container */
+    private $activeContainers = [];
 
+    /**
+     * @param string $entrypoint
+     * @param string $hostsFile
+     * @param string $tld
+     */
     public function __construct($entrypoint, $hostsFile, $tld)
     {
         $this->entrypoint = $entrypoint;
         $this->hostsFile = $hostsFile;
         $this->tld = $tld;
-
-        $this->client = new DockerClient([], $this->entrypoint);
-        $this->docker = new Docker($this->client);
+        $client = new DockerClient([], $this->entrypoint);
+        $this->docker = new Docker($client);
     }
 
     public function run()
     {
-        $lastState = [];
-        while (true) {
-            $state = $this->getRunningContainers();
-            if ($state !== $lastState) {
-                $lastState = $state;
-                $this->writeHosts($state);
-            }
-
-            sleep(1);
-        }
+        $this->init();
+        $this->listen();
     }
 
-    private function getRunningContainers()
+    private function init()
     {
-        $containers = [];
-        $containerManager = $this->docker->getContainerManager();
-        foreach ($containerManager->findAll() as $container) {
-            $containerManager->inspect($container);
-            $infos = $container->getRuntimeInformations();
+        $this->activeContainers = array_filter($this->docker->getContainerManager()->findAll(), function (Container $container) {
+            $this->docker->getContainerManager()->inspect($container);
 
-            if (false === $this->exposeContainer($infos)) {
-                continue;
-            }
-
-            $hosts = [substr($container->getName(), 1).$this->tld];
-            if (isset($infos['Config']['Env']) && is_array($infos['Config']['Env'])) {
-                $env = $infos['Config']['Env'];
-                foreach (preg_grep('/DOMAIN_NAME=/', $env) as $row) {
-                    $row = substr($row, strlen('DOMAIN_NAME='));
-                    $hosts = array_merge($hosts, explode(',', $row));
-                }
-            }
-
-            if (isset($infos['NetworkSettings']['IPAddress']) && '' !== $infos['NetworkSettings']['IPAddress']) {
-                $ip = $infos['NetworkSettings']['IPAddress'];
-                $containers[$ip] = $hosts;
-            }
-
-            if (isset($infos['NetworkSettings']['Networks']) && is_array($infos['NetworkSettings']['Networks'])) {
-                foreach ($infos['NetworkSettings']['Networks'] as $name => $conf) {
-                    $containers[$conf['IPAddress']] = $hosts;
-                }
-            }
-        }
-
-        return $containers;
+            return $this->isExposed($container);
+        });
+        $this->write();
     }
 
-    private function exposeContainer($infos)
+    private function listen()
     {
-        if (!isset($infos['State']['Running']) || true !== $infos['State']['Running']) {
-            return false;
-        }
-
-        if (empty($infos['NetworkSettings']['Ports'])) {
-            return false;
-        }
-
-        return true;
+        $this->docker->listenEvents(function (Event $event) {
+            $container = $this->docker->getContainerManager()->find($event->getId());
+            $this->docker->getContainerManager()->inspect($container);
+            if ($this->isExposed($container)) {
+                $this->addActiveContainer($container);
+            } else {
+                $this->removeActiveContainer($container);
+            }
+            $this->write();
+        });
     }
 
-    private function writeHosts(array $containers)
+    /**
+     * @param Container $container
+     */
+    private function addActiveContainer(Container $container)
     {
-        $content = file($this->hostsFile);
+        $id = $container->getId();
+        if (!empty($this->activeContainers[$id])) {
+            return;
+        }
+        $this->activeContainers[$id] = $container;
+    }
 
-        $res = preg_grep('/^## docker-hostmanager-start/', $content);
+    /**
+     * @param Container $container
+     */
+    private function removeActiveContainer(Container $container)
+    {
+        $this->activeContainers = array_filter($this->activeContainers, function (Container $c) use ($container) {
+            return $c->getId() !== $container->getId();
+        });
+    }
+
+    private function write()
+    {
+        $content = array_map('trim', file($this->hostsFile));
+        $res = preg_grep('/^'.self::START_TAG.'/', $content);
         $start = count($res) ? key($res) : count($content) + 1;
-
-        $res = preg_grep('/^## docker-hostmanager-end/', $content);
+        $res = preg_grep('/^'.self::END_TAG.'/', $content);
         $end = count($res) ? key($res) : count($content) + 1;
+        $hosts = array_merge(
+            [self::START_TAG],
+            array_map(
+                function (Container $container) {
+                    return implode("\n", $this->getHostsLines($container));
+                },
+                $this->activeContainers
+            ),
+            [self::END_TAG]
+        );
+        array_splice($content, $start, $end - $start + 1, $hosts);
+        file_put_contents($this->hostsFile, implode("\n", $content));
+    }
 
-        $conf = ["## docker-hostmanager-start\n"];
-        foreach ($containers as $ip => $hosts) {
-            $conf[] = $ip.' '.implode(' ', $hosts)."\n";
+    /**
+     * @param Container $container
+     *
+     * @return array
+     *
+     * @throws ContainerNotFoundException
+     */
+    private function getHostsLines(Container $container)
+    {
+        $this->docker->getContainerManager()->inspect($container);
+
+        $lines = [];
+        $hosts = $this->getContainerHosts($container);
+        foreach ($this->getContainerIps($container) as $ip) {
+            $lines[] = $ip.' '.implode(' ', $hosts);
         }
-        $conf[] = "## docker-hostmanager-end\n";
 
-        array_splice($content, $start, $end - $start + 1, $conf);
-        file_put_contents($this->hostsFile, implode('', $content));
+        return $lines;
+    }
+
+    /**
+     * @param Container $container
+     *
+     * @return array
+     */
+    private function getContainerIps(Container $container)
+    {
+        $inspection = $container->getRuntimeInformations();
+
+        $ips = [];
+        if (!empty($inspection['NetworkSettings']['IPAddress'])) {
+            $ips[] = $inspection['NetworkSettings']['IPAddress'];
+        }
+
+        if (isset($inspection['NetworkSettings']['Networks']) && is_array($inspection['NetworkSettings']['Networks'])) {
+            foreach ($inspection['NetworkSettings']['Networks'] as $conf) {
+                $ips[] = $conf['IPAddress'];
+            }
+        }
+
+        return array_unique($ips);
+    }
+
+    /**
+     * @param Container $container
+     *
+     * @return array
+     */
+    private function getContainerHosts(Container $container)
+    {
+        $inspection = $container->getRuntimeInformations();
+
+        $hosts = [substr($container->getName(), 1).$this->tld];
+        if (isset($inspection['Config']['Env']) && is_array($inspection['Config']['Env'])) {
+            $env = $inspection['Config']['Env'];
+            foreach (preg_grep('/DOMAIN_NAME=/', $env) as $row) {
+                $row = substr($row, strlen('DOMAIN_NAME='));
+                $hosts = array_merge($hosts, explode(',', $row));
+            }
+        }
+
+        return $hosts;
+    }
+
+    /**
+     * @param Container $container
+     *
+     * @return bool
+     */
+    private function isExposed(Container $container)
+    {
+        $inspection = $container->getRuntimeInformations();
+        if (empty($inspection['NetworkSettings']['Ports']) || empty($inspection['State']['Running'])) {
+            return false;
+        }
+
+        return $inspection['State']['Running'];
     }
 }
