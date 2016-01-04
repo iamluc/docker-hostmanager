@@ -3,6 +3,7 @@
 namespace DockerHostManager;
 
 use Docker\Container;
+use Docker\Exception\ContainerNotFoundException;
 use DockerHostManager\Docker\Docker;
 use DockerHostManager\Docker\Event;
 use Docker\Http\DockerClient;
@@ -48,6 +49,7 @@ class Application
     {
         $this->activeContainers = array_filter($this->docker->getContainerManager()->findAll(), function (Container $container) {
             $this->docker->getContainerManager()->inspect($container);
+
             return $this->isExposed($container);
         });
         $this->write();
@@ -55,7 +57,7 @@ class Application
 
     private function listen()
     {
-        $this->docker->listenEvents($this->entrypoint, function(Event $event) {
+        $this->docker->listenEvents(function (Event $event) {
             $container = $this->docker->getContainerManager()->find($event->getId());
             $this->docker->getContainerManager()->inspect($container);
             if ($this->isExposed($container)) {
