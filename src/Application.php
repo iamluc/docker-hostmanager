@@ -184,11 +184,7 @@ class Application
     private function isExposed(Container $container)
     {
         $inspection = $container->getRuntimeInformations();
-        if (
-            empty($inspection['NetworkSettings']['Ports']) ||
-            empty($inspection['NetworkSettings']['IPAddress']) ||
-            empty($inspection['State']['Running'])
-        ) {
+        if (empty($inspection['NetworkSettings']['Ports']) || empty($inspection['State']['Running'])) {
             return false;
         }
 
