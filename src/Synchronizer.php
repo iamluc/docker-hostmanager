@@ -3,55 +3,56 @@
 namespace DockerHostManager;
 
 use Docker\Container;
+use Docker\Exception\APIException;
 use Docker\Exception\ContainerNotFoundException;
 use DockerHostManager\Docker\Docker;
 use DockerHostManager\Docker\Event;
-use Docker\Http\DockerClient;
 
-class Application
+class Synchronizer
 {
     const START_TAG = '## docker-hostmanager-start';
     const END_TAG = '## docker-hostmanager-end';
 
-    /** @var string */
-    private $entrypoint;
+    /** @var Docker  */
+    private $docker;
     /** @var string */
     private $hostsFile;
     /** @var string */
     private $tld;
 
-    /** @var Docker  */
-    private $docker;
     /** @var array Container */
     private $activeContainers = [];
 
     /**
-     * @param string $entrypoint
+     * @param Docker $docker
      * @param string $hostsFile
      * @param string $tld
      */
-    public function __construct($entrypoint, $hostsFile, $tld)
+    public function __construct(Docker $docker, $hostsFile, $tld)
     {
-        $this->entrypoint = $entrypoint;
+        $this->docker = $docker;
         $this->hostsFile = $hostsFile;
         $this->tld = $tld;
-        $client = new DockerClient([], $this->entrypoint);
-        $this->docker = new Docker($client);
     }
 
     public function run()
     {
+        if (!is_writable($this->hostsFile)) {
+            throw new \RuntimeException(sprintf('File "%s" is not writable.', $this->hostsFile));
+        }
+
         $this->init();
         $this->listen();
     }
 
     private function init()
     {
-        $this->activeContainers = array_filter($this->docker->getContainerManager()->findAll(), function (Container $container) {
-            $this->docker->getContainerManager()->inspect($container);
+        foreach ($this->docker->getContainerManager()->findAll() as $container) {
+            if ($this->isExposed($container)) {
+                $this->activeContainers[$container->getId()] = $container;
+            }
+        }
 
-            return $this->isExposed($container);
-        });
         $this->write();
     }
 
@@ -59,35 +60,17 @@ class Application
     {
         $this->docker->listenEvents(function (Event $event) {
             $container = $this->docker->getContainerManager()->find($event->getId());
-            $this->docker->getContainerManager()->inspect($container);
-            if ($this->isExposed($container)) {
-                $this->addActiveContainer($container);
-            } else {
-                $this->removeActiveContainer($container);
+            if (null === $container) {
+                return;
             }
+
+            if ($this->isExposed($container)) {
+                $this->activeContainers[$container->getId()] = $container;
+            } else {
+                unset($this->activeContainers[$container->getId()]);
+            }
+
             $this->write();
-        });
-    }
-
-    /**
-     * @param Container $container
-     */
-    private function addActiveContainer(Container $container)
-    {
-        $id = $container->getId();
-        if (!empty($this->activeContainers[$id])) {
-            return;
-        }
-        $this->activeContainers[$id] = $container;
-    }
-
-    /**
-     * @param Container $container
-     */
-    private function removeActiveContainer(Container $container)
-    {
-        $this->activeContainers = array_filter($this->activeContainers, function (Container $c) use ($container) {
-            return $c->getId() !== $container->getId();
         });
     }
 
@@ -121,8 +104,6 @@ class Application
      */
     private function getHostsLines(Container $container)
     {
-        $this->docker->getContainerManager()->inspect($container);
-
         $lines = [];
         $hosts = $this->getContainerHosts($container);
         foreach ($this->getContainerIps($container) as $ip) {
@@ -183,6 +164,13 @@ class Application
      */
     private function isExposed(Container $container)
     {
+        try {
+            $this->docker->getContainerManager()->inspect($container);
+        } catch (APIException $e) {
+            // Happen on "docker build"
+            return false;
+        }
+
         $inspection = $container->getRuntimeInformations();
         if (empty($inspection['NetworkSettings']['Ports']) || empty($inspection['State']['Running'])) {
             return false;
