@@ -13,7 +13,7 @@ THIS PROJECT IS IN ALPHA STATE
 
 ### USAGE
 
-#### Docker image
+#### Docker image (Recommended)
 
 The easiest way is to use the docker image
 
@@ -32,6 +32,20 @@ i.e.
 ```
 $ docker run -d -e DOMAIN_NAME=test.com,www.test.com my_image
 ```
+
+#### PHAR
+
+If you don't want to use the docker image you can download a PHAR executable here : https://github.com/iamluc/docker-hostmanager/releases
+
+And then run it:
+
+```console
+$ php docker-hostmanager.phar synchronize-hosts
+```
+
+### Tests
+
+To run test, execute the following command : `vendor/bin/phpunit`
 
 ### LICENSE
 

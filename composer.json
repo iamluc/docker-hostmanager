@@ -5,7 +5,11 @@
     "description": "Update /etc/hosts to access running containers",
     "keywords": ["docker", "hosts", "registry"],
     "require": {
-        "stage1/docker-php": "@dev"
+        "stage1/docker-php": "@dev",
+        "symfony/console": "^3.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^5.1"
     },
     "authors": [
         {
@@ -14,6 +18,6 @@
         }
     ],
     "autoload": {
-        "psr-4": {"DockerHostManager\\": "src/"}
+        "psr-4": {"DockerHostManager\\": "src/", "Test\\": "tests"}
     }
 }
