@@ -2,14 +2,14 @@
 <?php
 
 if (PHP_SAPI !== 'cli') {
-    die('Warning: buse must be invoked via the CLI version of PHP, not the '.PHP_SAPI.' SAPI'.PHP_EOL);
+    die('Warning: docker-hostmanager must be invoked via the CLI version of PHP, not the '.PHP_SAPI.' SAPI'.PHP_EOL);
 }
 
-require_once __DIR__.'/../vendor/autoload.php';
+require __DIR__.'/../vendor/autoload.php';
 
-$entrypoint = getenv('DOCKER_ENTRYPOINT') ?: 'unix:///var/run/docker.sock';
-$hostsFile = getenv('HOSTS_FILE') ?: '/etc/hosts';
-$tld = getenv('TLD') ?: '.docker';
+use DockerHostManager\Command\RunCommand;
+use Symfony\Component\Console\Application;
 
-$app = new DockerHostManager\Application($entrypoint, $hostsFile, $tld);
-$app->run();
+$application = new Application('DockerHostManager', '@package_version@');
+$application->add(new RunCommand());
+$application->run();
