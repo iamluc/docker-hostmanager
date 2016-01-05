@@ -3,17 +3,19 @@
 namespace Test\DockerHostManager;
 
 use Docker\Docker;
-use Docker\Http\DockerClient;
-use DockerHostManager\Application;
+use DockerHostManager\Synchronizer;
 use Test\Utils\PropertyAccessor;
 
-class ApplicationTest extends \PHPUnit_Framework_TestCase
+class SynchronizerTest extends \PHPUnit_Framework_TestCase
 {
     public function testThatAppCanBeConstructed()
     {
-        $application = new Application('unix:///var/run/docker.sock', '/etc/hosts', 'docker');
+        $docker = $this->prophesize('DockerHostManager\Docker\Docker');
+        $docker = $docker->reveal();
 
-        $this->assertSame('unix:///var/run/docker.sock', PropertyAccessor::getProperty($application, 'entrypoint'));
+        $application = new Synchronizer($docker, '/etc/hosts', 'docker');
+
+        $this->assertSame($docker, PropertyAccessor::getProperty($application, 'docker'));
         $this->assertSame('/etc/hosts', PropertyAccessor::getProperty($application, 'hostsFile'));
         $this->assertSame('docker', PropertyAccessor::getProperty($application, 'tld'));
         $this->assertInstanceOf(Docker::class, PropertyAccessor::getProperty($application, 'docker'));

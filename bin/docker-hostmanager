@@ -7,9 +7,10 @@ if (PHP_SAPI !== 'cli') {
 
 require __DIR__.'/../vendor/autoload.php';
 
-use DockerHostManager\Command\RunCommand;
+use DockerHostManager\Command\SynchronizeHostsCommand;
 use Symfony\Component\Console\Application;
 
 $application = new Application('DockerHostManager', '@package_version@');
-$application->add(new RunCommand());
+$application->add(new SynchronizeHostsCommand());
+$application->setDefaultCommand('synchronize-hosts');
 $application->run();
