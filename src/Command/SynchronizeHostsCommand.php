@@ -18,13 +18,6 @@ class SynchronizeHostsCommand extends Command
             ->setName('synchronize-hosts')
             ->setDescription('Run the application')
             ->addOption(
-                'entrypoint',
-                'p',
-                InputOption::VALUE_REQUIRED,
-                'The docker entrypoint',
-                getenv('DOCKER_ENTRYPOINT') ?: 'unix:///var/run/docker.sock'
-            )
-            ->addOption(
                 'hosts_file',
                 'f',
                 InputOption::VALUE_REQUIRED,
@@ -43,14 +36,43 @@ class SynchronizeHostsCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $client = new DockerClient([], $input->getOption('entrypoint'));
-
         $app = new Synchronizer(
-            new Docker($client),
+            new Docker($this->createDockerClient()),
             $input->getOption('hosts_file'),
             $input->getOption('tld')
         );
 
         $app->run();
+    }
+
+    /**
+     * Copy of https://github.com/hxpro/docker-php/blob/master/src/Docker/Http/DockerClient.php
+     * + disable peer_name check.
+     *
+     * @return DockerClient
+     */
+    private function createDockerClient()
+    {
+        $entrypoint = getenv('DOCKER_HOST') ? getenv('DOCKER_HOST') : 'unix:///var/run/docker.sock';
+        $context = null;
+        $useTls = false;
+        if (getenv('DOCKER_TLS_VERIFY') && getenv('DOCKER_TLS_VERIFY') == 1) {
+            if (!getenv('DOCKER_CERT_PATH')) {
+                throw new \RuntimeException('Connection to docker has been set to use TLS, but no PATH is defined for certificate in DOCKER_CERT_PATH docker environment variable');
+            }
+            $useTls = true;
+            $cafile = getenv('DOCKER_CERT_PATH').DIRECTORY_SEPARATOR.'ca.pem';
+            $certfile = getenv('DOCKER_CERT_PATH').DIRECTORY_SEPARATOR.'cert.pem';
+            $keyfile = getenv('DOCKER_CERT_PATH').DIRECTORY_SEPARATOR.'key.pem';
+            $context = stream_context_create([
+                'ssl' => [
+                    'cafile' => $cafile,
+                    'local_cert' => $certfile,
+                    'local_pk' => $keyfile,
+                ],
+            ]);
+        }
+
+        return new DockerClient([], $entrypoint, $context, $useTls);
     }
 }
