@@ -21,13 +21,10 @@ class Event
      */
     public function __construct($raw)
     {
-        $this->status = $raw['status'];
-        $this->id = $raw['id'];
-        // eg. pull events do not contain 'from'
-        if (isset($raw['from'])) {
-            $this->from = $raw['from'];
-        }
-        $this->time = $raw['time'];
+        $this->status = isset($raw['status']) ? $raw['status'] : null;
+        $this->id = isset($raw['id']) ? $raw['id'] : null;
+        $this->from = isset($raw['from']) ? $raw['from'] : null;
+        $this->time = isset($raw['time']) ? $raw['time'] : null;
     }
 
     /**

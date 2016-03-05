@@ -59,7 +59,16 @@ class Synchronizer
     private function listen()
     {
         $this->docker->listenEvents(function (Event $event) {
-            $container = $this->docker->getContainerManager()->find($event->getId());
+            if (null === $event->getId()) {
+                return;
+            }
+
+            try  {
+                $container = $this->docker->getContainerManager()->find($event->getId());
+            } catch (\Exception $e) {
+                return;
+            }
+
             if (null === $container) {
                 return;
             }
