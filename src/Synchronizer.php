@@ -113,36 +113,34 @@ class Synchronizer
      */
     private function getHostsLines(Container $container)
     {
-        $lines = [];
-        $hosts = $this->getContainerHosts($container);
-        foreach ($this->getContainerIps($container) as $ip) {
-            $lines[] = $ip.' '.implode(' ', $hosts);
-        }
-
-        return $lines;
-    }
-
-    /**
-     * @param Container $container
-     *
-     * @return array
-     */
-    private function getContainerIps(Container $container)
-    {
         $inspection = $container->getRuntimeInformations();
+        $lines = [];
 
-        $ips = [];
+        // Global
         if (!empty($inspection['NetworkSettings']['IPAddress'])) {
-            $ips[] = $inspection['NetworkSettings']['IPAddress'];
+            $ip = $inspection['NetworkSettings']['IPAddress'];
+
+            $lines[] = $ip.' '.implode(' ', $this->getContainerHosts($container));
         }
 
+        // Networks
         if (isset($inspection['NetworkSettings']['Networks']) && is_array($inspection['NetworkSettings']['Networks'])) {
-            foreach ($inspection['NetworkSettings']['Networks'] as $conf) {
-                $ips[] = $conf['IPAddress'];
+            foreach ($inspection['NetworkSettings']['Networks'] as $networkName => $conf) {
+                $ip = $conf['IPAddress'];
+
+                $aliases = isset($conf['Aliases']) && is_array($conf['Aliases']) ? $conf['Aliases'] : [];
+                $aliases[] = substr($container->getName(), 1);
+
+                $hosts = [];
+                foreach (array_unique($aliases) as $alias) {
+                    $hosts[] = $alias.'.'.$networkName;
+                }
+
+                $lines[] = $ip.' '.implode(' ', $hosts);
             }
         }
 
-        return array_unique($ips);
+        return $lines;
     }
 
     /**
