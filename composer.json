@@ -11,6 +11,9 @@
     "require-dev": {
         "phpunit/phpunit": "^5.1"
     },
+    "bin": [
+        "bin/docker-hostmanager"
+    ],
     "authors": [
         {
             "name": "Luc Vieillescazes",
