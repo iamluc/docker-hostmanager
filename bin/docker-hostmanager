@@ -5,7 +5,12 @@ if (PHP_SAPI !== 'cli') {
     die('Warning: docker-hostmanager must be invoked via the CLI version of PHP, not the '.PHP_SAPI.' SAPI'.PHP_EOL);
 }
 
-require __DIR__.'/../vendor/autoload.php';
+foreach ([__DIR__.'/../vendor/autoload.php', __DIR__.'/../../../autoload.php'] as $file) {
+    if (file_exists($file)) {
+        require $file;
+        break;
+    }
+}
 
 use DockerHostManager\Command\SynchronizeHostsCommand;
 use Symfony\Component\Console\Application;
