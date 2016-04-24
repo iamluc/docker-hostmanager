@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "hash": "3fad2c8540cb4070d41413f6bef000ad",
+    "hash": "b9d7c696b4ba33af60998ae1093e8a31",
     "content-hash": "cc077c31955d6c25d083852030c94045",
     "packages": [
         {
@@ -130,12 +130,12 @@
             "version": "dev-master",
             "source": {
                 "type": "git",
-                "url": "https://github.com/stage1/docker-php.git",
-                "reference": "86a417b8cd91a6c031ff9a0a284eb17575fc82be"
+                "url": "https://github.com/docker-php/docker-php.git",
+                "reference": "969b7da55c5e8f7c6616d39550a971463cacdc4c"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/stage1/docker-php/zipball/86a417b8cd91a6c031ff9a0a284eb17575fc82be",
+                "url": "https://api.github.com/repos/docker-php/docker-php/zipball/969b7da55c5e8f7c6616d39550a971463cacdc4c",
                 "reference": "86a417b8cd91a6c031ff9a0a284eb17575fc82be",
                 "shasum": ""
             },
@@ -160,7 +160,7 @@
                 "MIT"
             ],
             "description": "A Docker PHP client",
-            "time": "2015-12-11 10:59:54"
+            "time": "2016-04-13 21:31:24"
         },
         {
             "name": "symfony/console",
@@ -1376,7 +1376,7 @@
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/yaml/zipball/177a015cb0e19ff4a49e0e2e2c5fc1c1bee07002",
+                "url": "https://api.github.com/repos/symfony/yaml/zipball/4113f97104ffdcb734e15c27fbe27a7e1a3ac3b0",
                 "reference": "177a015cb0e19ff4a49e0e2e2c5fc1c1bee07002",
                 "shasum": ""
             },

@@ -49,6 +49,15 @@ Also, you should add a route to access containers inside your VM.
 $ sudo route -n add 172.0.0.0/8 $(docker-machine ip $(docker-machine active))
 ```
 
+### INSTALL WITH COMPOSER
+
+Alternatively, you can install `docker-hostmanager` with [composer](https://getcomposer.org/).
+
+Just run
+```
+composer global require iamluc/docker-hostmanager
+```
+
 ### OPTIONS
 
 The `DOMAIN_NAME` environment variable lets you define multiple hosts when running your containers.
