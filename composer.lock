@@ -4,8 +4,8 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "hash": "2b2f29d02d0267a0d84c680d2738fd55",
-    "content-hash": "311cc30b0bd940b87253d95208308105",
+    "hash": "5cf9e0520f0032dbcb781664781a8846",
+    "content-hash": "c950a856407e853987df4b25e401e734",
     "packages": [
         {
             "name": "docker-php/docker-php",
