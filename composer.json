@@ -3,7 +3,7 @@
     "license": "MIT",
     "type": "project",
     "description": "Update /etc/hosts to access running containers",
-    "keywords": ["docker", "hosts", "/etc/hosts"],
+    "keywords": ["docker", "hosts"],
     "require": {
         "stage1/docker-php": "@dev",
         "symfony/console": "^3.0"
