@@ -5,7 +5,7 @@
     "description": "Update /etc/hosts to access running containers",
     "keywords": ["docker", "hosts"],
     "require": {
-        "stage1/docker-php": "@dev",
+        "docker-php/docker-php": "^0.4.4",
         "symfony/console": "^3.0"
     },
     "require-dev": {
