@@ -120,7 +120,7 @@ class Synchronizer
         if (!empty($inspection['NetworkSettings']['IPAddress'])) {
             $ip = $inspection['NetworkSettings']['IPAddress'];
 
-            $lines[] = $ip.' '.implode(' ', $this->getContainerHosts($container));
+            $lines[$ip] = implode(' ', $this->getContainerHosts($container));
         }
 
         // Networks
@@ -136,11 +136,32 @@ class Synchronizer
                     $hosts[] = $alias.'.'.$networkName;
                 }
 
-                $lines[] = $ip.' '.implode(' ', $hosts);
+                if (isset($lines[$ip])) {
+                    $lines[$ip] .= ' ';
+                } else {
+                    $lines[$ip] = '';
+                }
+
+                $lines[$ip] .= implode(' ', $hosts);
             }
         }
 
-        return $lines;
+        return $this->mergeLines($lines);
+    }
+
+    /**
+     * @param array $lines
+     *
+     * @return array
+     */
+    public function mergeLines(array $lines)
+    {
+        $mergedLines = [];
+        foreach ($lines as $ip => $line) {
+            $mergedLines[] = $ip.' '.$line;
+        }
+
+        return $mergedLines;
     }
 
     /**
