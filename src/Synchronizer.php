@@ -131,7 +131,7 @@ class Synchronizer
                 $aliases = isset($conf['Aliases']) && is_array($conf['Aliases']) ? $conf['Aliases'] : [];
                 $aliases[] = substr($container->getName(), 1);
 
-                $hosts = [];
+                $hosts = [$this->getTldHost($container)];
                 foreach (array_unique($aliases) as $alias) {
                     $hosts[] = $alias.'.'.$networkName;
                 }
@@ -152,7 +152,7 @@ class Synchronizer
     {
         $inspection = $container->getRuntimeInformations();
 
-        $hosts = [substr($container->getName(), 1).$this->tld];
+        $hosts = [$this->getTldHost($container)];
         if (isset($inspection['Config']['Env']) && is_array($inspection['Config']['Env'])) {
             $env = $inspection['Config']['Env'];
             foreach (preg_grep('/DOMAIN_NAME=/', $env) as $row) {
@@ -162,6 +162,16 @@ class Synchronizer
         }
 
         return $hosts;
+    }
+
+    /**
+     * @param Container $container
+     *
+     * @return string
+     */
+    private function getTldHost(Container $container)
+    {
+        return substr($container->getName(), 1).$this->tld;
     }
 
     /**
