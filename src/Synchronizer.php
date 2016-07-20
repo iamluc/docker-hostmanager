@@ -136,32 +136,15 @@ class Synchronizer
                     $hosts[] = $alias.'.'.$networkName;
                 }
 
-                if (isset($lines[$ip])) {
-                    $lines[$ip] .= ' ';
-                } else {
-                    $lines[$ip] = '';
-                }
-
-                $lines[$ip] .= implode(' ', $hosts);
+                $lines[$ip] = sprintf('%s%s', isset($lines[$ip]) ? $lines[$ip].' ' : '', implode(' ', $hosts));
             }
         }
 
-        return $this->mergeLines($lines);
-    }
+        array_walk($lines, function (&$host, $ip) {
+            $host = $ip.' '.$host;
+        });
 
-    /**
-     * @param array $lines
-     *
-     * @return array
-     */
-    public function mergeLines(array $lines)
-    {
-        $mergedLines = [];
-        foreach ($lines as $ip => $line) {
-            $mergedLines[] = $ip.' '.$line;
-        }
-
-        return $mergedLines;
+        return $lines;
     }
 
     /**
