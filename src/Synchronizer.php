@@ -120,7 +120,7 @@ class Synchronizer
         if (!empty($inspection['NetworkSettings']['IPAddress'])) {
             $ip = $inspection['NetworkSettings']['IPAddress'];
 
-            $lines[] = $ip.' '.implode(' ', $this->getContainerHosts($container));
+            $lines[$ip] = implode(' ', $this->getContainerHosts($container));
         }
 
         // Networks
@@ -136,9 +136,13 @@ class Synchronizer
                     $hosts[] = $alias.'.'.$networkName;
                 }
 
-                $lines[] = $ip.' '.implode(' ', $hosts);
+                $lines[$ip] = sprintf('%s%s', isset($lines[$ip]) ? $lines[$ip].' ' : '', implode(' ', $hosts));
             }
         }
+
+        array_walk($lines, function (&$host, $ip) {
+            $host = $ip.' '.$host;
+        });
 
         return $lines;
     }
