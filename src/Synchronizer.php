@@ -2,9 +2,8 @@
 
 namespace DockerHostManager;
 
-use Docker\Container;
-use Docker\Exception\APIException;
-use Docker\Exception\ContainerNotFoundException;
+use Docker\API\Model\Container;
+use Docker\Manager\ContainerManager;
 use DockerHostManager\Docker\Docker;
 use DockerHostManager\Docker\Event;
 
@@ -20,7 +19,7 @@ class Synchronizer
     /** @var string */
     private $tld;
 
-    /** @var array Container */
+    /** @var array */
     private $activeContainers = [];
 
     /**
@@ -47,9 +46,12 @@ class Synchronizer
 
     private function init()
     {
-        foreach ($this->docker->getContainerManager()->findAll() as $container) {
+        foreach ($this->docker->getContainerManager()->findAll() as $containerConfig) {
+            $response = $this->docker->getContainerManager()->find($containerConfig->getId(), [], ContainerManager::FETCH_RESPONSE);
+            $container = json_decode(\GuzzleHttp\Psr7\copy_to_string($response->getBody()), true);
+
             if ($this->isExposed($container)) {
-                $this->activeContainers[$container->getId()] = $container;
+                $this->activeContainers[$container['Id']] = $container;
             }
         }
 
@@ -64,7 +66,8 @@ class Synchronizer
             }
 
             try  {
-                $container = $this->docker->getContainerManager()->find($event->getId());
+                $response = $this->docker->getContainerManager()->find($event->getId(), [], ContainerManager::FETCH_RESPONSE);
+                $container = json_decode(\GuzzleHttp\Psr7\copy_to_string($response->getBody()), true);
             } catch (\Exception $e) {
                 return;
             }
@@ -74,9 +77,9 @@ class Synchronizer
             }
 
             if ($this->isExposed($container)) {
-                $this->activeContainers[$container->getId()] = $container;
+                $this->activeContainers[$container['Id']] = $container;
             } else {
-                unset($this->activeContainers[$container->getId()]);
+                unset($this->activeContainers[$container['Id']]);
             }
 
             $this->write();
@@ -93,7 +96,7 @@ class Synchronizer
         $hosts = array_merge(
             [self::START_TAG],
             array_map(
-                function (Container $container) {
+                function ($container) {
                     return implode("\n", $this->getHostsLines($container));
                 },
                 $this->activeContainers
@@ -105,40 +108,41 @@ class Synchronizer
     }
 
     /**
-     * @param Container $container
+     * @param $container
      *
      * @return array
-     *
-     * @throws ContainerNotFoundException
      */
-    private function getHostsLines(Container $container)
+    private function getHostsLines($container)
     {
-        $inspection = $container->getRuntimeInformations();
         $lines = [];
 
         // Global
-        if (!empty($inspection['NetworkSettings']['IPAddress'])) {
-            $ip = $inspection['NetworkSettings']['IPAddress'];
+        if (!empty($container['NetworkSettings']['IPAddress'])) {
+            $ip = $container['NetworkSettings']['IPAddress'];
 
-            $lines[] = $ip.' '.implode(' ', $this->getContainerHosts($container));
+            $lines[$ip] = implode(' ', $this->getContainerHosts($container));
         }
 
         // Networks
-        if (isset($inspection['NetworkSettings']['Networks']) && is_array($inspection['NetworkSettings']['Networks'])) {
-            foreach ($inspection['NetworkSettings']['Networks'] as $networkName => $conf) {
+        if (isset($container['NetworkSettings']['Networks']) && is_array($container['NetworkSettings']['Networks'])) {
+            foreach ($container['NetworkSettings']['Networks'] as $networkName => $conf) {
                 $ip = $conf['IPAddress'];
 
                 $aliases = isset($conf['Aliases']) && is_array($conf['Aliases']) ? $conf['Aliases'] : [];
-                $aliases[] = substr($container->getName(), 1);
+                $aliases[] = substr($container['Name'], 1);
 
                 $hosts = [];
                 foreach (array_unique($aliases) as $alias) {
                     $hosts[] = $alias.'.'.$networkName;
                 }
 
-                $lines[] = $ip.' '.implode(' ', $hosts);
+                $lines[$ip] = sprintf('%s%s', isset($lines[$ip]) ? $lines[$ip].' ' : '', implode(' ', $hosts));
             }
         }
+
+        array_walk($lines, function (&$host, $ip) {
+            $host = $ip.' '.$host;
+        });
 
         return $lines;
     }
@@ -148,13 +152,11 @@ class Synchronizer
      *
      * @return array
      */
-    private function getContainerHosts(Container $container)
+    private function getContainerHosts($container)
     {
-        $inspection = $container->getRuntimeInformations();
-
-        $hosts = [substr($container->getName(), 1).$this->tld];
-        if (isset($inspection['Config']['Env']) && is_array($inspection['Config']['Env'])) {
-            $env = $inspection['Config']['Env'];
+        $hosts = [substr($container['Name'], 1).$this->tld];
+        if (isset($container['Config']['Env']) && is_array($container['Config']['Env'])) {
+            $env = $container['Config']['Env'];
             foreach (preg_grep('/DOMAIN_NAME=/', $env) as $row) {
                 $row = substr($row, strlen('DOMAIN_NAME='));
                 $hosts = array_merge($hosts, explode(',', $row));
@@ -169,20 +171,12 @@ class Synchronizer
      *
      * @return bool
      */
-    private function isExposed(Container $container)
+    private function isExposed($container)
     {
-        try {
-            $this->docker->getContainerManager()->inspect($container);
-        } catch (APIException $e) {
-            // Happen on "docker build"
+        if (empty($container['NetworkSettings']['Ports']) || empty($container['State']['Running'])) {
             return false;
         }
 
-        $inspection = $container->getRuntimeInformations();
-        if (empty($inspection['NetworkSettings']['Ports']) || empty($inspection['State']['Running'])) {
-            return false;
-        }
-
-        return $inspection['State']['Running'];
+        return $container['State']['Running'];
     }
 }
