@@ -154,7 +154,7 @@ class Synchronizer
      */
     private function getContainerHosts($container)
     {
-        $hosts = [substr($container->getName(), 1).$this->tld];
+        $hosts = [substr($container['Name'], 1).$this->tld];
         if (isset($container['Config']['Env']) && is_array($container['Config']['Env'])) {
             $env = $container['Config']['Env'];
             foreach (preg_grep('/DOMAIN_NAME=/', $env) as $row) {
