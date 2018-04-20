@@ -8,7 +8,7 @@
         {"type": "vcs", "url": "https://github.com/iamluc/docker-php.git"}
     ],
     "require": {
-        "symfony/console": "^2.8|^3.0",
+        "symfony/console": "^2.8|^3.0|^4.0",
         "docker-php/docker-php": "dev-compat-docker-1.12"
     },
     "require-dev": {
@@ -24,6 +24,9 @@
         }
     ],
     "autoload": {
-        "psr-4": {"DockerHostManager\\": "src/", "Test\\": "tests"}
+        "psr-4": {"DockerHostManager\\": "src/"}
+    },
+    "autoload-dev": {
+        "psr-4": {"Test\\": "tests"}
     }
 }
