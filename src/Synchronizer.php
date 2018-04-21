@@ -127,7 +127,7 @@ class Synchronizer
         if (isset($container['NetworkSettings']['Networks']) && is_array($container['NetworkSettings']['Networks'])) {
             foreach ($container['NetworkSettings']['Networks'] as $networkName => $conf) {
                 preg_match(sprintf('/^%s_(.+)$/', $this->getProjectName($container)), $networkName, $matches);
-                $networkShortName = $matches[1];
+                $networkShortName = isset($matches[1]) ? $matches[1] : null;
                 $ip = $conf['IPAddress'];
 
                 $aliases = isset($conf['Aliases']) && is_array($conf['Aliases']) ? $conf['Aliases'] : [];
@@ -178,7 +178,7 @@ class Synchronizer
     {
         return array_merge(
             [substr($container['Name'], 1).$this->tld],
-            $this->getAdditionalHosts($container)
+            $this->getAdditionalContainerHosts($container)
         );
     }
 
