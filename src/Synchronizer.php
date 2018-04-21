@@ -178,7 +178,7 @@ class Synchronizer
     {
         return array_merge(
             [substr($container['Name'], 1).$this->tld],
-            $this->getAdditionalHosts($container)
+            $this->getAdditionalContainerHosts($container)
         );
     }
 
