@@ -16,4 +16,4 @@ COPY --from=0 /app/ /usr/local/src/docker-hostmanager
 
 ENV HOSTS_FILE=/hosts
 
-CMD ["/usr/local/src/docker-hostmanager/bin/docker-hostmanager"]
+ENTRYPOINT ["/usr/local/src/docker-hostmanager/bin/docker-hostmanager"]
