@@ -1,10 +1,19 @@
-FROM iamluc/composer
+FROM composer
 
-ADD . /usr/local/src/docker-hostmanager
+ADD . /app/
 
-RUN composer install --no-interaction --no-dev --prefer-dist --working-dir=/usr/local/src/docker-hostmanager \
-    && ln -s /usr/local/src/docker-hostmanager/bin/docker-hostmanager /usr/local/bin/docker-hostmanager
+RUN composer install --working-dir=/app --no-interaction --no-dev --prefer-dist --optimize-autoloader
+
+FROM alpine:3.7
+
+RUN apk add --no-update --no-cache \
+	php7 \
+	php7-cli \
+	php7-iconv \
+	php7-mbstring
+
+COPY --from=0 /app/ /usr/local/src/docker-hostmanager
 
 ENV HOSTS_FILE=/hosts
 
-ENTRYPOINT ["/usr/local/bin/docker-hostmanager"]
+ENTRYPOINT ["/usr/local/src/docker-hostmanager/bin/docker-hostmanager"]
