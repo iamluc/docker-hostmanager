@@ -43,23 +43,22 @@ $ eval $(docker-machine env mybox)
 
 Also, you should add a route to access containers inside your VM.
 
-For Linux
 ```
 $ sudo route -n add 172.0.0.0/8 $(docker-machine ip $(docker-machine active))
 ```
 
-For Windows ( requires admin elevation )
-```
-$ route -p add 172.0.0.0/8 192.168.99.100
+#### Windows
+
+If the host, dont use Docker ToolBox or not a Windows 10 PRO, then needs to mount the /c/Windows folder onto VirtualBox.
+
+```console
+$ docker run -d --name docker-hostmanager --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v /c/Windows/System32/drivers/etc/hosts:/hosts iamluc/docker-hostmanager
 ```
 
-### INSTALL WITH COMPOSER
+After run the container we need to add a route to access container subnets.
 
-Alternatively, you can install `docker-hostmanager` with [composer](https://getcomposer.org/).
-
-Just run
 ```
-composer global require iamluc/docker-hostmanager
+$ route /P add 172.0.0.0 MASK 255.0.0.0 10.0.75.2
 ```
 
 ### OPTIONS
