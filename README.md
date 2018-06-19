@@ -8,7 +8,6 @@ Inspired by `vagrant-hostmanager`.
 
 Project homepage: [https://github.com/iamluc/docker-hostmanager](https://github.com/iamluc/docker-hostmanager)
 
-
 ### USAGE
 
 #### Linux
@@ -31,7 +30,7 @@ And then run it:
 $ sudo php docker-hostmanager.phar synchronize-hosts
 ```
 
-Note: We run the command as root as we need the permission to write file `/etc/hots`.
+Note: We run the command as root as we need the permission to write file `/etc/hosts`.
 If you don't want to run the command as root, grant the correct permission to you user.
 
 Before running the command, don't forget to export your docker environment variables.
@@ -61,10 +60,60 @@ After run the container we need to add a route to access container subnets.
 $ route /P add 172.17.0.0/8 192.168.99.100
 ```
 
-### OPTIONS
+### CONFIGURATION
 
-The `DOMAIN_NAME` environment variable lets you define multiple hosts when running your containers.
-i.e.
+#### With networks
+
+When a container belongs to at least one network (typically when using a `docker-compose.yml` file in version >= 2), the name defined to access the container is `CONTAINER_NAME.CONTAINER_NETWORK`. It works also with the alias defined for the network.
+
+As a container can belongs to several networks at the same time, and thanks to alias, you can define how you want to access your container.
+
+**Example 1 (default network):**
+```
+version: '2'
+
+services:
+    web:
+        image: iamluc/symfony
+        volumes:
+            - .:/var/www/html
+```
+
+The container `web` will be accessible with `web.myapp_default` (if the docker-compose project name is `myapp`)
+
+**Example 2 (external network and alias):**
+```
+version: '2'
+
+networks:
+    default:
+        external:
+            name: myapp
+
+services:
+    web:
+        image: iamluc/symfony
+        volumes:
+            - .:/var/www/html
+
+    mysql:
+        image: mysql
+        networks:
+            default:
+                aliases:
+                    - bdd
+```
+
+The `web` container will be accessible with `web.myapp`.
+The `mysql` container will be accessible with `mysql.myapp` or `bdd.myapp`
+
+#### Without networks
+
+When a container has no defined network (only the default "bridge" one), it is accessible by its container name, concatened with the defined TLD (`.docker` by default).
+It is the case when you run a single container with the `docker` command or when you use a `docker-compose.yml` file in version 1.
+
+The `DOMAIN_NAME` environment variable lets you define additional hosts for your container.
+e.g.:
 ```
 $ docker run -d -e DOMAIN_NAME=test.com,www.test.com my_image
 ```
