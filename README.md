@@ -69,7 +69,7 @@ When a container belongs to at least one network (typically when using a `docker
 As a container can belongs to several networks at the same time, and thanks to alias, you can define how you want to access your container.
 
 **Example 1 (default network):**
-```
+```yaml
 version: '2'
 
 services:
@@ -81,14 +81,13 @@ services:
 
 The container `web` will be accessible with `web.myapp_default` (if the docker-compose project name is `myapp`)
 
-**Example 2 (external network and alias):**
-```
-version: '2'
+**Example 2 (custom network name and alias):**
+```yaml
+version: '3.5'
 
 networks:
     default:
-        external:
-            name: myapp
+        name: myapp
 
 services:
     web:
