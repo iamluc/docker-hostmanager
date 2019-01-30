@@ -2,8 +2,7 @@
 
 namespace DockerHostManager;
 
-use Docker\API\Model\Container;
-use Docker\Manager\ContainerManager;
+use Docker\API\Model\ContainersIdJsonGetResponse200;
 use DockerHostManager\Docker\Docker;
 use DockerHostManager\Docker\Event;
 
@@ -19,7 +18,7 @@ class Synchronizer
     /** @var string */
     private $tld;
 
-    /** @var array */
+    /** @var ContainersIdJsonGetResponse200[] */
     private $activeContainers = [];
 
     /**
@@ -46,16 +45,30 @@ class Synchronizer
 
     private function init()
     {
-        foreach ($this->docker->getContainerManager()->findAll() as $containerConfig) {
-            $response = $this->docker->getContainerManager()->find($containerConfig->getId(), [], ContainerManager::FETCH_RESPONSE);
-            $container = json_decode(\GuzzleHttp\Psr7\copy_to_string($response->getBody()), true);
-
-            if ($this->isExposed($container)) {
-                $this->activeContainers[$container['Id']] = $container;
-            }
+        foreach ($this->docker->containerList() as $container) {
+            $this->configureContainer($container->getId());
         }
 
         $this->write();
+    }
+
+    private function configureContainer(string $containerId)
+    {
+        try {
+            $container = $this->docker->containerInspect($containerId);
+        } catch (\Exception $e) {
+            return;
+        }
+
+        if (null === $container) {
+            return;
+        }
+
+        if ($this->isExposed($container)) {
+            $this->activeContainers[$container->getId()] = $container;
+        } else {
+            unset($this->activeContainers[$container->getId()]);
+        }
     }
 
     private function listen()
@@ -65,22 +78,7 @@ class Synchronizer
                 return;
             }
 
-            try  {
-                $response = $this->docker->getContainerManager()->find($event->getId(), [], ContainerManager::FETCH_RESPONSE);
-                $container = json_decode(\GuzzleHttp\Psr7\copy_to_string($response->getBody()), true);
-            } catch (\Exception $e) {
-                return;
-            }
-
-            if (null === $container) {
-                return;
-            }
-
-            if ($this->isExposed($container)) {
-                $this->activeContainers[$container['Id']] = $container;
-            } else {
-                unset($this->activeContainers[$container['Id']]);
-            }
+            $this->configureContainer($event->getId());
 
             $this->write();
         });
@@ -107,37 +105,28 @@ class Synchronizer
         file_put_contents($this->hostsFile, implode("\n", $content));
     }
 
-    /**
-     * @param $container
-     *
-     * @return array
-     */
-    private function getHostsLines($container)
+    private function getHostsLines(ContainersIdJsonGetResponse200 $container): array
     {
         $lines = [];
 
         // Global
-        if (!empty($container['NetworkSettings']['IPAddress'])) {
-            $ip = $container['NetworkSettings']['IPAddress'];
-
+        if (!empty($container->getNetworkSettings()->getIPAddress())) {
+            $ip = $container->getNetworkSettings()->getIPAddress();
             $lines[$ip] = implode(' ', $this->getContainerHosts($container));
         }
 
         // Networks
-        if (isset($container['NetworkSettings']['Networks']) && is_array($container['NetworkSettings']['Networks'])) {
-            foreach ($container['NetworkSettings']['Networks'] as $networkName => $conf) {
-                $ip = $conf['IPAddress'];
+        foreach ($container->getNetworkSettings()->getNetworks() as $networkName => $conf) {
+            $ip = $conf->getIPAddress();
+            $aliases = is_array($conf->getAliases()) ? $conf->getAliases() : [];
+            $aliases[] = substr($container->getName(), 1);
 
-                $aliases = isset($conf['Aliases']) && is_array($conf['Aliases']) ? $conf['Aliases'] : [];
-                $aliases[] = substr($container['Name'], 1);
-
-                $hosts = [];
-                foreach (array_unique($aliases) as $alias) {
-                    $hosts[] = $alias.'.'.$networkName;
-                }
-
-                $lines[$ip] = sprintf('%s%s', isset($lines[$ip]) ? $lines[$ip].' ' : '', implode(' ', $hosts));
+            $hosts = [];
+            foreach (array_unique($aliases) as $alias) {
+                $hosts[] = $alias.'.'.$networkName;
             }
+
+            $lines[$ip] = sprintf('%s%s', isset($lines[$ip]) ? $lines[$ip].' ' : '', implode(' ', $hosts));
         }
 
         array_walk($lines, function (&$host, $ip) {
@@ -147,16 +136,11 @@ class Synchronizer
         return $lines;
     }
 
-    /**
-     * @param Container $container
-     *
-     * @return array
-     */
-    private function getContainerHosts($container)
+    private function getContainerHosts(ContainersIdJsonGetResponse200 $container): array
     {
-        $hosts = [substr($container['Name'], 1).$this->tld];
-        if (isset($container['Config']['Env']) && is_array($container['Config']['Env'])) {
-            $env = $container['Config']['Env'];
+        $hosts = [substr($container->getName(), 1).$this->tld];
+        if (is_array($container->getConfig()->getEnv())) {
+            $env = $container->getConfig()->getEnv();
             foreach (preg_grep('/DOMAIN_NAME=/', $env) as $row) {
                 $row = substr($row, strlen('DOMAIN_NAME='));
                 $hosts = array_merge($hosts, explode(',', $row));
@@ -166,17 +150,12 @@ class Synchronizer
         return $hosts;
     }
 
-    /**
-     * @param Container $container
-     *
-     * @return bool
-     */
-    private function isExposed($container)
+    private function isExposed(ContainersIdJsonGetResponse200 $container): bool
     {
-        if (empty($container['NetworkSettings']['Ports']) || empty($container['State']['Running'])) {
+        if (empty($container->getNetworkSettings()->getPorts()) || empty($container->getState()->getRunning())) {
             return false;
         }
 
-        return $container['State']['Running'];
+        return true === $container->getState()->getRunning();
     }
 }
