@@ -2,31 +2,34 @@
 
 namespace DockerHostManager\Docker;
 
+use Docker\API\Normalizer\NormalizerFactory;
 use Docker\Docker as DockerBase;
-use Docker\DockerClient;
+use Docker\DockerClientFactory;
 use Http\Client\HttpClient;
 use Http\Message\MessageFactory;
 use Http\Message\MessageFactory\GuzzleMessageFactory;
+use Symfony\Component\Serializer\Encoder\JsonDecode;
+use Symfony\Component\Serializer\Encoder\JsonEncode;
+use Symfony\Component\Serializer\Encoder\JsonEncoder;
 use Symfony\Component\Serializer\Serializer;
 
 class Docker extends DockerBase
 {
-    /**
-     * @var HttpClient
-     */
-    private $httpClient;
-
-    /**
-     * @var MessageFactory
-     */
-    private $messageFactory;
-
     public function __construct(HttpClient $httpClient = null, Serializer $serializer = null, MessageFactory $messageFactory = null)
     {
-        $this->httpClient = $httpClient ?: DockerClient::createFromEnv();
-        $this->messageFactory = $messageFactory ?: new GuzzleMessageFactory();
+        $httpClient = $httpClient ?: DockerClientFactory::createFromEnv();
+        $serializer = $serializer ?:  $serializer = new Serializer(
+            NormalizerFactory::create(),
+            [
+                new JsonEncoder(
+                    new JsonEncode(),
+                    new JsonDecode()
+                ),
+            ]
+        );
+        $messageFactory = $messageFactory ?: new GuzzleMessageFactory();
 
-        parent::__construct($this->httpClient, $serializer, $this->messageFactory);
+        parent::__construct($httpClient, $messageFactory, $serializer);
     }
 
     /**
