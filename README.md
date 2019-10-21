@@ -57,7 +57,7 @@ $ docker run -d --name docker-hostmanager --restart=always -v /var/run/docker.so
 After run the container we need to add a route to access container subnets.
 
 ```
-$ route /P add 172.17.0.0/8 192.168.99.100
+$ route /P add 172.17.0.0/12 192.168.99.100
 ```
 
 ### CONFIGURATION
