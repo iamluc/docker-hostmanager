@@ -1,6 +1,7 @@
 {
     "name": "iamluc/docker-hostmanager",
     "license": "MIT",
+    "version": "0.0.1",
     "type": "project",
     "description": "Update /etc/hosts to access running containers",
     "keywords": ["docker", "hosts"],
