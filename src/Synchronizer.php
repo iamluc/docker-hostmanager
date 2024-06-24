@@ -126,6 +126,8 @@ class Synchronizer
         // Networks
         if (isset($container['NetworkSettings']['Networks']) && is_array($container['NetworkSettings']['Networks'])) {
             foreach ($container['NetworkSettings']['Networks'] as $networkName => $conf) {
+                preg_match(sprintf('/^%s_(.+)$/', $this->getProjectName($container)), $networkName, $matches);
+                $networkShortName = isset($matches[1]) ? $matches[1] : null;
                 $ip = $conf['IPAddress'];
 
                 $aliases = isset($conf['Aliases']) && is_array($conf['Aliases']) ? $conf['Aliases'] : [];
@@ -134,6 +136,12 @@ class Synchronizer
                 $hosts = [];
                 foreach (array_unique($aliases) as $alias) {
                     $hosts[] = $alias.'.'.$networkName;
+                }
+
+                foreach ($this->getAdditionalContainerHosts($container) as $host) {
+                    if (preg_match('/^(.+):(.+)$/', $host, $matches) && $matches[1] === $networkShortName) {
+                        $hosts[] = $matches[2];
+                    }
                 }
 
                 $lines[$ip] = sprintf('%s%s', isset($lines[$ip]) ? $lines[$ip].' ' : '', implode(' ', $hosts));
@@ -148,22 +156,67 @@ class Synchronizer
     }
 
     /**
-     * @param Container $container
+     * @param array $container
+     *
+     * @return string
+     */
+    private function getProjectName($container)
+    {
+        if (isset($container['Config']['Labels']['com.docker.compose.project'])) {
+            return $container['Config']['Labels']['com.docker.compose.project'];
+        }
+
+        return '';
+    }
+
+    /**
+     * @param array $container
      *
      * @return array
      */
     private function getContainerHosts($container)
     {
-        $hosts = [substr($container['Name'], 1).$this->tld];
-        if (isset($container['Config']['Env']) && is_array($container['Config']['Env'])) {
-            $env = $container['Config']['Env'];
-            foreach (preg_grep('/DOMAIN_NAME=/', $env) as $row) {
-                $row = substr($row, strlen('DOMAIN_NAME='));
-                $hosts = array_merge($hosts, explode(',', $row));
-            }
+        return array_merge(
+            [substr($container['Name'], 1).$this->tld],
+            $this->getAdditionalContainerHosts($container)
+        );
+    }
+
+    /**
+     * @param array $container
+     *
+     * @return array
+     */
+    private function getAdditionalContainerHosts($container)
+    {
+        $hosts = [];
+
+        $domainName = $this->getEnv($container, 'DOMAIN_NAME');
+        if ($domainName) {
+            $hosts = array_merge($hosts, explode(',', $domainName));
         }
 
         return $hosts;
+    }
+
+    /**
+     * @param array  $container
+     * @param string $name
+     * @param string $default
+     *
+     * @return string
+     */
+    private function getEnv($container, $name, $default = null)
+    {
+        if (isset($container['Config']['Env']) && is_array($container['Config']['Env'])) {
+            foreach ($container['Config']['Env'] as $env) {
+                if (preg_match(sprintf('/^%s=(.*)$/', $name), $env, $matches)) {
+                    return $matches[1];
+                }
+            }
+        }
+
+        return $default;
     }
 
     /**
