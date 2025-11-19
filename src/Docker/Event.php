@@ -21,10 +21,10 @@ class Event
      */
     public function __construct($raw)
     {
-        $this->status = isset($raw['status']) ? $raw['status'] : null;
-        $this->id = isset($raw['id']) ? $raw['id'] : null;
-        $this->from = isset($raw['from']) ? $raw['from'] : null;
-        $this->time = isset($raw['time']) ? $raw['time'] : null;
+        $this->status = $raw['status'] ?? $raw['Action'] ?? null;
+        $this->id = $raw['id'] ?? $raw['Actor']['ID'] ?? null;
+        $this->from = $raw['from'] ?? $raw['Actor']['Attributes']['image'] ?? null;
+        $this->time = $raw['time'] ?? null;
     }
 
     /**
