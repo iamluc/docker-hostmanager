@@ -22,4 +22,4 @@ jobs:
       - name: Run Buildx and push image
         run: |
           docker buildx create --use --name multi-arch-builder --platform "linux/arm64,linux/amd64"
-          docker buildx build --platform "linux/arm64,linux/amd64" --tag ${{ secrets.DOCKERHUB_USERNAME }}/docker-hostmanager:0.0.4 --file Dockerfile --output type=image,push=true .
+          docker buildx build --platform "linux/arm64,linux/amd64" --tag ${{ secrets.DOCKERHUB_USERNAME }}/docker-hostmanager:latest --file Dockerfile --output type=image,push=true .
