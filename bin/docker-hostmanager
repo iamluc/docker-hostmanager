@@ -16,6 +16,6 @@ use DockerHostManager\Command\SynchronizeHostsCommand;
 use Symfony\Component\Console\Application;
 
 $application = new Application('DockerHostManager', '@package_version@');
-$application->add(new SynchronizeHostsCommand());
+$application->addCommand(new SynchronizeHostsCommand());
 $application->setDefaultCommand('synchronize-hosts');
 $application->run();

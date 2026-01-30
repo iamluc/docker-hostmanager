@@ -5,15 +5,13 @@
     "type": "project",
     "description": "Update /etc/hosts to access running containers",
     "keywords": ["docker", "hosts"],
-    "repositories": [
-        {"type": "vcs", "url": "https://github.com/iamluc/docker-php.git"}
-    ],
     "require": {
-        "symfony/console": "^2.8|^3.0",
-        "docker-php/docker-php": "dev-compat-docker-1.12"
+        "php": "^8.1",
+        "symfony/console": "^7.4 || ^8.0",
+        "sigwin/docker-php": "^1.0@alpha"
     },
     "require-dev": {
-        "phpunit/phpunit": "^5.1"
+        "phpunit/phpunit": "^12.5"
     },
     "bin": [
         "bin/docker-hostmanager"
@@ -25,6 +23,14 @@
         }
     ],
     "autoload": {
-        "psr-4": {"DockerHostManager\\": "src/", "Test\\": "tests"}
+        "psr-4": {"DockerHostManager\\": "src/"}
+    },
+    "autoload-dev": {
+        "psr-4": {"Test\\": "tests"}
+    },
+    "config": {
+        "allow-plugins": {
+            "php-http/discovery": true
+        }
     }
 }

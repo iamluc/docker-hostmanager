@@ -2,6 +2,8 @@
 
 namespace DockerHostManager\Docker;
 
+use Docker\API\Model\EventMessage;
+
 class Event
 {
     /** @var string */
@@ -15,6 +17,12 @@ class Event
 
     /** @var string */
     protected $time;
+    
+    public static function fromEventMessage(EventMessage $message)
+    {
+        // TODO: update the mapping
+        return new self([]);
+    }
 
     /**
      * @param string $raw

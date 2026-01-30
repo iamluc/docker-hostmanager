@@ -2,6 +2,7 @@
 
 namespace DockerHostManager\Command;
 
+use Docker\DockerClient;
 use DockerHostManager\Docker\Docker;
 use DockerHostManager\Synchronizer;
 use Symfony\Component\Console\Command\Command;
@@ -11,7 +12,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 class SynchronizeHostsCommand extends Command
 {
-    protected function configure()
+    protected function configure(): void
     {
         $this
             ->setName('synchronize-hosts')
@@ -33,14 +34,16 @@ class SynchronizeHostsCommand extends Command
         ;
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $app = new Synchronizer(
-            new Docker(),
+            new Docker(DockerClient::create()),
             $input->getOption('hosts_file'),
             $input->getOption('tld')
         );
 
         $app->run();
+        
+        return self::SUCCESS;
     }
 }

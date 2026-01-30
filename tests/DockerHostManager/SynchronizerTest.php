@@ -4,9 +4,10 @@ namespace Test\DockerHostManager;
 
 use Docker\Docker;
 use DockerHostManager\Synchronizer;
+use PHPUnit\Framework\TestCase;
 use Test\Utils\PropertyAccessor;
 
-class SynchronizerTest extends \PHPUnit_Framework_TestCase
+class SynchronizerTest extends TestCase
 {
     public function testThatAppCanBeConstructed()
     {
