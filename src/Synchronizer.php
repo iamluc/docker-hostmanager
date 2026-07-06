@@ -116,13 +116,6 @@ class Synchronizer
     {
         $lines = [];
 
-        // Global
-        if (!empty($container['NetworkSettings']['IPAddress'])) {
-            $ip = $container['NetworkSettings']['IPAddress'];
-
-            $lines[$ip] = implode(' ', $this->getContainerHosts($container));
-        }
-
         // Networks
         if (isset($container['NetworkSettings']['Networks']) && is_array($container['NetworkSettings']['Networks'])) {
             foreach ($container['NetworkSettings']['Networks'] as $networkName => $conf) {
@@ -135,6 +128,8 @@ class Synchronizer
                 foreach (array_unique($aliases) as $alias) {
                     $hosts[] = $alias.'.'.$networkName;
                 }
+
+                $lines[$ip] = implode(' ', $this->getContainerHosts($container));
 
                 $lines[$ip] = sprintf('%s%s', isset($lines[$ip]) ? $lines[$ip].' ' : '', implode(' ', $hosts));
             }
